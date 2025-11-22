@@ -23,7 +23,21 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'j1c=6$s-dh#$ywt@(q4cm=j&0c*!0x!e-qm6k
 
 # Add your hosts to the list.
 # Railway provides RAILWAY_PUBLIC_DOMAIN, but we'll use ALLOWED_HOSTS env var
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,192.168.1.101').split(',')
+# Also check RAILWAY_PUBLIC_DOMAIN for automatic Railway domain detection
+allowed_hosts_str = os.environ.get('ALLOWED_HOSTS', '')
+railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
+
+if allowed_hosts_str:
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.strip()]
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.101']
+
+# Add Railway domain if available and not already in list
+if railway_domain and railway_domain not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(railway_domain)
+    # Also add wildcard for Railway subdomains
+    if '*.railway.app' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append('*.railway.app')
 
 # Database
 # Railway automatically provides DATABASE_URL environment variable
