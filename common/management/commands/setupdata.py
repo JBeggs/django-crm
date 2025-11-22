@@ -26,15 +26,36 @@ class Command(BaseCommand):
         # Step 1: Migrations
         if not settings.TESTING:
             self.stdout.write(self.style.WARNING('Step 1/3: Running migrations...'))
-            try:
-                call_command('migrate', verbosity=verbosity)
-                self.stdout.write(self.style.SUCCESS('✓ Migrations completed'))
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f'✗ Migration error: {e}'))
-                if verbosity >= 2:
-                    import traceback
-                    self.stdout.write(traceback.format_exc())
-                sys.exit(1)
+            # Retry logic for database connections
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    # Close any existing connections before retry
+                    from django.db import connection
+                    connection.close()
+                    
+                    call_command('migrate', verbosity=verbosity)
+                    self.stdout.write(self.style.SUCCESS('✓ Migrations completed'))
+                    break
+                except Exception as e:
+                    error_msg = str(e)
+                    if 'server closed the connection' in error_msg or 'connection' in error_msg.lower():
+                        if attempt < max_retries - 1:
+                            wait_time = (attempt + 1) * 2
+                            self.stdout.write(
+                                self.style.WARNING(
+                                    f'  Connection error (attempt {attempt + 1}/{max_retries}). '
+                                    f'Retrying in {wait_time} seconds...'
+                                )
+                            )
+                            import time
+                            time.sleep(wait_time)
+                            continue
+                    self.stdout.write(self.style.ERROR(f'✗ Migration error: {e}'))
+                    if verbosity >= 2:
+                        import traceback
+                        self.stdout.write(traceback.format_exc())
+                    sys.exit(1)
 
         # Step 2: Load fixtures
         if not skip_fixtures:
@@ -61,15 +82,34 @@ class Command(BaseCommand):
             
             for i, fixture in enumerate(fixtures, 1):
                 self.stdout.write(f'  Loading {i}/{len(fixtures)}: {fixture}...', ending='')
-                try:
-                    call_command('loaddata', fixture, verbosity=verbosity)
-                    self.stdout.write(self.style.SUCCESS(' ✓'))
-                except Exception as e:
-                    self.stdout.write(self.style.ERROR(f' ✗ Error: {e}'))
-                    if verbosity >= 2:
-                        import traceback
-                        self.stdout.write(traceback.format_exc())
-                    # Continue with other fixtures
+                # Retry logic for fixture loading
+                max_retries = 2
+                loaded = False
+                for attempt in range(max_retries):
+                    try:
+                        # Close connection before retry
+                        from django.db import connection
+                        connection.close()
+                        
+                        call_command('loaddata', fixture, verbosity=verbosity)
+                        self.stdout.write(self.style.SUCCESS(' ✓'))
+                        loaded = True
+                        break
+                    except Exception as e:
+                        error_msg = str(e)
+                        if 'server closed the connection' in error_msg or 'connection' in error_msg.lower():
+                            if attempt < max_retries - 1:
+                                import time
+                                time.sleep(1)
+                                continue
+                        if attempt == max_retries - 1:
+                            self.stdout.write(self.style.ERROR(f' ✗ Error: {e}'))
+                            if verbosity >= 2:
+                                import traceback
+                                self.stdout.write(traceback.format_exc())
+                            # Continue with other fixtures
+                if not loaded:
+                    self.stdout.write(self.style.WARNING('  (skipped)'))
             self.stdout.write(self.style.SUCCESS('✓ Fixtures loading completed'))
         else:
             self.stdout.write(self.style.WARNING('Skipping fixtures (--skip-fixtures)'))
