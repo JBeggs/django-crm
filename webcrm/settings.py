@@ -1,4 +1,5 @@
 import sys
+import os
 from pathlib import Path
 from datetime import datetime as dt
 from django.utils.translation import gettext_lazy as _
@@ -26,7 +27,6 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,192.168.1.1
 
 # Database
 # Railway automatically provides DATABASE_URL environment variable
-import os
 import dj_database_url
 
 if os.environ.get('DATABASE_URL'):
