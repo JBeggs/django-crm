@@ -12,19 +12,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--verbosity',
-            type=int,
-            default=1,
-            help='Verbosity level; 0=minimal, 1=normal, 2=verbose, 3=very verbose',
-        )
-        parser.add_argument(
             '--skip-fixtures',
             action='store_true',
             help='Skip loading fixtures (useful if they hang)',
         )
 
     def handle(self, *args, **options):
-        verbosity = options.get('verbosity', 1)
+        verbosity = options.get('verbosity', 1)  # Django provides this automatically
         skip_fixtures = options.get('skip_fixtures', False)
         
         self.stdout.write(self.style.SUCCESS('Starting setupdata...'))
