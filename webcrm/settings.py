@@ -29,14 +29,27 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,192.168.1.1
 # Railway automatically provides DATABASE_URL environment variable
 import dj_database_url
 
-if os.environ.get('DATABASE_URL'):
-    # Production (Railway/Heroku/etc.) - use DATABASE_URL
-    DATABASES = {
-        'default': dj_database_url.config(
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
+# Prefer DATABASE_PUBLIC_URL for local Railway CLI connections
+# DATABASE_URL uses internal hostnames that don't work from local machines
+database_url = os.environ.get('DATABASE_PUBLIC_URL') or os.environ.get('DATABASE_URL')
+
+if database_url:
+    # Temporarily override DATABASE_URL so dj_database_url.config() uses the correct URL
+    original_db_url = os.environ.get('DATABASE_URL')
+    os.environ['DATABASE_URL'] = database_url
+    try:
+        DATABASES = {
+            'default': dj_database_url.config(
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+    finally:
+        # Restore original DATABASE_URL if it was set
+        if original_db_url:
+            os.environ['DATABASE_URL'] = original_db_url
+        elif 'DATABASE_URL' in os.environ:
+            del os.environ['DATABASE_URL']
 else:
     # Local development - use SQLite
     DATABASES = {

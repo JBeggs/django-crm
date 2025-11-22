@@ -57,10 +57,15 @@ class RemindersSender(threading.Thread, SingleInstance):
                 send_remainders()
                 try:
                     interval = Reminders.objects.get(id=1).check_interval
-                except Reminders.DoesNotExist:
+                except (Reminders.DoesNotExist, ProgrammingError, OperationalError):
                     # TODO: The "REMAINDER_CHECK_INTERVAL" setting is deprecated and should be removed in the future.
                     interval = getattr(settings, 'REMAINDER_CHECK_INTERVAL', None) or 300
-                    Reminders.objects.create(id=1, check_interval=interval)
+                    try:
+                        Reminders.objects.create(id=1, check_interval=interval)
+                    except (ProgrammingError, OperationalError):
+                        # Table still doesn't exist, wait longer
+                        time.sleep(5)
+                        continue
 
                 time.sleep(interval)
 
