@@ -4,9 +4,17 @@ import sys
 import subprocess
 import time
 
+# Print to stdout so Railway logs capture it
+print("=" * 80)
+print("RUNNING MIGRATIONS")
+print("=" * 80)
+sys.stdout.flush()
+
 # Add timeout to prevent hanging forever
 max_attempts = 3
 for attempt in range(max_attempts):
+    print(f"\nMigration attempt {attempt + 1}/{max_attempts}")
+    sys.stdout.flush()
     result = subprocess.run(
         [sys.executable, 'manage.py', 'migrate', '--noinput'],
         capture_output=True,
@@ -40,7 +48,11 @@ for attempt in range(max_attempts):
             sys.exit(result.returncode)
     else:
         # Success
+        print("\n" + "=" * 80)
+        print("MIGRATIONS COMPLETED SUCCESSFULLY")
+        print("=" * 80)
         print(result.stdout)
+        sys.stdout.flush()
         sys.exit(0)
 
 # Should never reach here, but just in case
