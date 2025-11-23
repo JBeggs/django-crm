@@ -106,8 +106,8 @@ if database_url:
     # psycopg2 connection parameters (these go in OPTIONS)
     db_config.setdefault('OPTIONS', {})
     db_config['OPTIONS'].update({
-        'connect_timeout': 5,  # Connection timeout (seconds) - fail fast
-        'options': '-c statement_timeout=10000',  # 10 second query timeout - fail fast instead of hanging
+        'connect_timeout': 30,  # Connection timeout (seconds) - give database time to wake up
+        'options': '-c statement_timeout=30000',  # 30 second query timeout
     })
     
     DATABASES = {
