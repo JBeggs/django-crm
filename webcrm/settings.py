@@ -44,18 +44,16 @@ if railway_domain and railway_domain not in ALLOWED_HOSTS:
 import dj_database_url
 
 # Choose database URL based on environment:
-# - On Railway (deployed): Use DATABASE_URL (internal, faster, more reliable)
-# - Local railway run: Use DATABASE_PUBLIC_URL (external, works from local machine)
-# Detect if we're actually running in Railway's container (not just railway run locally)
-# Check if we're in Railway's container by looking for PORT env var (set by Railway at runtime)
-# railway run commands don't set PORT, only RAILWAY_ENVIRONMENT
-is_railway_container = os.environ.get('PORT') is not None
-if is_railway_container:
-    # Actually deployed in Railway container - use internal DATABASE_URL
-    database_url = os.environ.get('DATABASE_URL')
+# - If DATABASE_URL contains 'railway.internal', use it (internal, faster, more reliable)
+# - Otherwise, prefer DATABASE_PUBLIC_URL for local/railway run commands
+# This way deployed Railway containers use internal connection, local commands use public proxy
+database_url_internal = os.environ.get('DATABASE_URL', '')
+if database_url_internal and 'railway.internal' in database_url_internal:
+    # Internal Railway connection - use it (deployed container)
+    database_url = database_url_internal
 else:
-    # Local development or railway run - use public URL if available
-    database_url = os.environ.get('DATABASE_PUBLIC_URL') or os.environ.get('DATABASE_URL')
+    # Local development or railway run - use public URL if available, fallback to DATABASE_URL
+    database_url = os.environ.get('DATABASE_PUBLIC_URL') or database_url_internal
 
 if database_url:
     # Temporarily override DATABASE_URL so dj_database_url.config() uses the correct URL
