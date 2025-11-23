@@ -56,15 +56,15 @@ if database_url:
             conn_max_age=600,
             conn_health_checks=True,
         )
-        # Add connection options for better reliability
+        # Add connection options for better reliability with Railway
+        # psycopg2 connection parameters (these go in OPTIONS)
         db_config.setdefault('OPTIONS', {})
         db_config['OPTIONS'].update({
-            'connect_timeout': 10,
-            'keepalives': 1,
-            'keepalives_idle': 30,
-            'keepalives_interval': 10,
-            'keepalives_count': 5,
+            'connect_timeout': 30,  # Increased timeout for Railway connections (seconds)
         })
+        # Connection pool settings
+        if 'CONN_MAX_AGE' not in db_config:
+            db_config['CONN_MAX_AGE'] = 600
         DATABASES = {
             'default': db_config
         }
