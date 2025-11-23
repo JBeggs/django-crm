@@ -54,22 +54,30 @@ import dj_database_url
 database_url_public = os.environ.get('DATABASE_PUBLIC_URL')
 database_url_internal = os.environ.get('DATABASE_URL')
 
+# Debug output to see what we're working with
+print(f"[DB Config DEBUG] DATABASE_PUBLIC_URL exists: {bool(database_url_public)}")
+print(f"[DB Config DEBUG] DATABASE_URL exists: {bool(database_url_internal)}")
+if database_url_internal:
+    print(f"[DB Config DEBUG] DATABASE_URL host: {database_url_internal.split('@')[1].split('/')[0] if '@' in database_url_internal else 'N/A'}")
+
 if database_url_public:
     # Public URL exists - use it (works for both railway run and deployed containers)
     database_url = database_url_public
     port = os.environ.get('PORT')
+    print(f"[DB Config] ✅ Using DATABASE_PUBLIC_URL (host: {database_url.split('@')[1].split('/')[0] if '@' in database_url else 'N/A'})")
     if port:
-        print("[DB Config] Railway container (PORT=%s), using DATABASE_PUBLIC_URL" % port)
+        print(f"[DB Config] Railway container (PORT={port}), using DATABASE_PUBLIC_URL")
     else:
         print("[DB Config] Local/railway run detected, using DATABASE_PUBLIC_URL")
 elif database_url_internal:
     # No public URL, use internal (only works in Railway containers)
     database_url = database_url_internal
-    print("[DB Config] Using internal DATABASE_URL (no DATABASE_PUBLIC_URL available)")
+    print(f"[DB Config] ⚠️ Using internal DATABASE_URL (no DATABASE_PUBLIC_URL available)")
+    print(f"[DB Config] Host: {database_url.split('@')[1].split('/')[0] if '@' in database_url else 'N/A'}")
 else:
     # No database URL at all
     database_url = None
-    print("[DB Config] No database URL found")
+    print("[DB Config] ❌ No database URL found")
 
 if database_url:
     # Parse the database URL directly using default parameter
