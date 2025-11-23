@@ -56,33 +56,29 @@ else:
     database_url = os.environ.get('DATABASE_PUBLIC_URL') or database_url_internal
 
 if database_url:
-    # Temporarily override DATABASE_URL so dj_database_url.config() uses the correct URL
-    original_db_url = os.environ.get('DATABASE_URL')
-    os.environ['DATABASE_URL'] = database_url
-    try:
-        db_config = dj_database_url.config(
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-        # Add connection options for better reliability with Railway
-        # psycopg2 connection parameters (these go in OPTIONS)
-        db_config.setdefault('OPTIONS', {})
-        db_config['OPTIONS'].update({
-            'connect_timeout': 10,  # Connection timeout (seconds)
-            'options': '-c statement_timeout=30000',  # 30 second query timeout
-        })
-        # Connection pool settings - reduce to avoid connection exhaustion
-        if 'CONN_MAX_AGE' not in db_config:
-            db_config['CONN_MAX_AGE'] = 300  # Reduced from 600 to recycle connections faster
-        DATABASES = {
-            'default': db_config
-        }
-    finally:
-        # Restore original DATABASE_URL if it was set
-        if original_db_url:
-            os.environ['DATABASE_URL'] = original_db_url
-        elif 'DATABASE_URL' in os.environ:
-            del os.environ['DATABASE_URL']
+    # Parse the database URL directly using default parameter
+    # This avoids relying on environment variable overrides
+    db_config = dj_database_url.config(
+        default=database_url,  # Pass URL directly
+        conn_max_age=300,  # Reduced from 600 to recycle connections faster
+        conn_health_checks=True,
+    )
+    
+    # Ensure ENGINE is set correctly
+    if 'ENGINE' not in db_config:
+        db_config['ENGINE'] = 'django.db.backends.postgresql'
+    
+    # Add connection options for better reliability with Railway
+    # psycopg2 connection parameters (these go in OPTIONS)
+    db_config.setdefault('OPTIONS', {})
+    db_config['OPTIONS'].update({
+        'connect_timeout': 10,  # Connection timeout (seconds)
+        'options': '-c statement_timeout=30000',  # 30 second query timeout
+    })
+    
+    DATABASES = {
+        'default': db_config
+    }
 else:
     # Local development - use SQLite
     DATABASES = {
