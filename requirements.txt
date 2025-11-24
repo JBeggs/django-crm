@@ -27,7 +27,7 @@
     XlsxWriter==3.2.9
     yarl==1.22.0
 djangorestframework==3.15.2
-djangorestframework-simplejwt==5.3.1
+djangorestframework-simplejwt==5.5.1
 django-cors-headers==4.3.1
 django-filter==24.2
 drf-spectacular==0.27.0
